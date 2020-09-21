@@ -65,11 +65,11 @@ const Login = function(body) {
     var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
     return new Promise((resolve, reject) => {
         cognitoUser.authenticateUser(authenticationDetails, {
-            onSuccess: function(result) {
+            onSuccess: (result) => {
                 var accesstoken = result.getAccessToken().getJwtToken();
                 resolve(accesstoken);
             },
-            onFailure: (function(err) {
+            onFailure: ((err) => {
                 console.log('entro error ', err.message);
                 reject(err);
                 return;
@@ -115,13 +115,13 @@ const Logout = function(body) {
     var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
     return new Promise((resolve, reject) => {
         cognitoUser.authenticateUser(authenticationDetails, {
-            onSuccess: function(result) {
+            onSuccess: (result) => {
                 cognitoUser.globalSignOut();
                 resolve({
                     message: 'Desconectado'
                 });
             },
-            onFailure: function(err) {
+            onFailure: (err) => {
                 //console.log(err);
                 reject(err);
                 return;
@@ -145,7 +145,7 @@ const ChangePassword = function(body) {
     return new Promise((resolve, reject) => {
 
         cognitoUser.authenticateUser(authenticationDetails, {
-            onSuccess: function(result) {
+            onSuccess: (result) => {
                 cognitoUser.changePassword(md5(body.password), md5(body.newpassword), (err, result) => {
                     if (err) {
                         console.log(err);
@@ -161,12 +161,103 @@ const ChangePassword = function(body) {
                     }
                 });
             },
-            onFailure: function(err) {
+            onFailure: (err) => {
                 reject(err);
                 return;
             },
         });
     });
+}
+const Delete = function(body) {
+    var authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+        Password: body.password,
+        Password: md5(body.password),
+    });
+
+    var userData = {
+        Username: body.name,
+        Pool: userPool
+    };
+    var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+    return new Promise((resolve, reject) => {
+        cognitoUser.authenticateUser(authenticationDetails, {
+            onSuccess: (result) => {
+                cognitoUser.deleteUser((err, result) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({
+                            message: 'Success'
+
+                        });
+                    }
+                });
+            },
+            onFailure: (err) => {
+                //console.log(err);
+                reject(err);
+            },
+        });
+
+    })
+}
+
+const ResetPassword = function(body) {
+    // const poolData = { UserPoolId: xxxx, ClientId: xxxx };
+    // userPool is const userPool = new AWSCognito.CognitoUserPool(poolData);
+
+    // setup cognitoUser first
+    cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+        Username: body.username,
+        Pool: userPool
+    });
+    console.log('en reset password ', body.username)
+        // call forgotPassword on cognitoUser
+    return new Promise((resolve, reject) => {
+        cognitoUser.forgotPassword({
+            onSuccess: (result) => {
+                console.log('call result: ' + result);
+                resolve(result);
+            },
+            onFailure: (err) => {
+                reject(err);
+            },
+        });
+
+    });
+}
+
+const ForgotPassword = function(body) {
+    //validation of input from form
+    /*     req.checkBody('email', 'Username is required').notEmpty();
+        req.checkBody('password', 'Password is required').notEmpty();
+        req.checkBody('confirmationcode', 'Confirmation Code is required').notEmpty();
+     */
+
+    var confirmationCode = body.confirmationcode;
+    var password = md5(body.password);
+    var userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+    console.log('en forgot passw ', confirmationCode, password);
+
+    var userData = {
+        Username: body.email,
+        Pool: userPool
+    };
+    var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+    return new Promise((resolve, reject) => {
+        cognitoUser.confirmPassword(confirmationCode, password, {
+            onFailure(err) {
+                reject(err);
+            },
+            onSuccess() {
+                console.log('success');
+                resolve({
+                    message: 'Success'
+                });
+            },
+        });
+
+    })
 }
 
 app.use('/register', async function(req, res) {
@@ -225,6 +316,45 @@ app.use('/changePassword', async function(req, res) {
         let register = await ChangePassword(req.body);
         console.log('regreso Logout ');
         res.send(register);
+
+    } catch (err) {
+        console.log('error catch ', err.message)
+        res.send(err);
+    }
+
+});
+
+app.use('/delete', async function(req, res) {
+    try {
+        let borrar = await Delete(req.body);
+        console.log('regreso Delete ');
+        res.send(borrar);
+
+    } catch (err) {
+        console.log('error catch ', err.message)
+        res.send(err);
+    }
+
+});
+
+app.use('/resetPassword', async function(req, res) {
+    try {
+        let reset = await ResetPassword(req.body);
+        console.log('regreso Reset ');
+        res.send(reset);
+
+    } catch (err) {
+        console.log('error catch ', err.message)
+        res.send(err);
+    }
+
+});
+
+app.use('/forgotPassword', async function(req, res) {
+    try {
+        let forgot = await ForgotPassword(req.body);
+        console.log('regreso Forgot ');
+        res.send(forgot);
 
     } catch (err) {
         console.log('error catch ', err.message)
