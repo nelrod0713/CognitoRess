@@ -6,7 +6,7 @@ global.fetch = require('node-fetch');
 global.navigator = () => null;
 const AmazonCognitoIdentity = require('amazon-cognito-identity-js');
 const { nextTick } = require('process');
-//const AWS = require('aws-sdk'); //
+/* const AWS = require('aws-sdk'); */
 const poolData = {
     UserPoolId: 'us-east-2_nqAuygNnN', //"us-east-2_2UDkDCCcp",
     ClientId: '335n4608726nmda4mb2t97q0m4' //"47fpf90kp6nirabrh710h0a2t9"
@@ -79,7 +79,7 @@ const Login = function(body) {
 
 };
 
-const EnableUser = function(body) {
+const ConfirmUser = function(body) {
 
     var userName = body.name;
     var verificationCode = body.verificationCode;
@@ -285,11 +285,11 @@ app.use('/login', async function(req, res) {
     }
 
 });
-app.use('/enableUser', async function(req, res) {
+app.use('/confirmUser', async function(req, res) {
     try {
-        let register = await EnableUser(req.body);
-        console.log('regreso enableUser ');
-        res.send(register);
+        let confirm = await ConfirmUser(req.body);
+        console.log('regreso confirmUser ');
+        res.send(confirm);
 
     } catch (err) {
         console.log('error catch ', err.message)
@@ -362,6 +362,8 @@ app.use('/forgotPassword', async function(req, res) {
     }
 
 });
+
+
 
 http.listen(app.get('port'), function() {
     console.log('Express server listening on port ' + app.get('port'));
